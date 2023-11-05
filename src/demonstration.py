@@ -4,6 +4,7 @@ import subprocess
 from os import getcwd
 import signal
 import sys
+from glob import glob
 
 # Local imports
 from host import Host
@@ -12,6 +13,7 @@ from switch import Switch
 from onos import ONOS
 from atomix import Atomix
 from global_variables import *
+from cicflowmeter import CICFlowMeter
 
 
 class Seafile(Host):
@@ -117,10 +119,60 @@ def createServer(name: str, serverImage: str, subnet: str, address: int):
     nodes[name].instantiate(serverImage)
     setNetworkConfig(nodes[name], nodes["brint"], subnet, address)
 
+def convertPcap():
+    print(f"[LFT] Converting pcap files with CICFlowMeter")
+    pcaps = glob('flows/brint/*')
+    pcaps = pcaps + glob('flows/brext/*')
+    if len(pcaps) == 0: 
+        print(" ... 0 pcaps")
+        return
+
+    hostPath = getcwd()+'/flows'
+    containerPath = '/home/flows'
+
+    # Get statsitics from all pcaps files
+    print(f"[LFT] ... Converting {len(pcaps)} PCAP Files (it might take several minutes)")
+    cicflowmeter = CICFlowMeter('cic', hostPath, containerPath)
+    cicflowmeter.instantiate()
+    [cicflowmeter.analyze('/home/'+pcap, containerPath) for pcap in pcaps]
+    cicflowmeter.delete()
+
+    # Merge all csv files
+    print(f"[LFT] ... Merging all CSV Files")
+    csvs = glob('flows/*.csv')
+    csv_content = ''
+    def get_content(csv):
+        nonlocal csv_content
+        with open(csv, 'r') as f:
+            csv_content += f.read()
+    [get_content(csv) for csv in csvs]
+
+    # Remove duplicate headers
+    print(f"[LFT] ... Removing Duplicate Headers")
+    csv_content = csv_content.split('\n')
+    header = csv_content[0]
+    csv_content = [content for content in csv_content if not 'Flow ID' in content]
+    csv_content = header + '\n' + '\n'.join(csv_content)
+
+    # Save new csv file
+    subprocess.run(f'rm flows/dump*', shell=True)
+    print(f"[LFT] ... Saving CSV File")
+    with open(hostPath+'/final_report.csv', 'w') as f:
+        f.write(csv_content)
+
+def collectLogs():
+    print(f"[LFT] Collecting Client Logs")
+    hosts = ['e1', 'e2', 'm1', 'm2', 'm3', 'm4', 'o1', 'o2', 'd1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8', 'd9', 'd10', 'd11', 'd12', 'd13']
+    ips = ['50.3', '50.4', '200.2', '200.3', '200.4', '200.5', '210.2', '210.3', '220.2', '220.3', '220.4', '220.5', '220.6', '220.7', '220.8', '220.9', '220.10', '220.11', '220.12', '220.13', '220.14']
+    def getLog(ip, host):
+        subprocess.run(f'docker cp {host}:/home/debian/log/192.168.{ip}.log logs/192.168.{ip}.log > /dev/null 2>&1', shell=True)
+    [getLog(ip, host) for ip, host in zip(ips, hosts)]
+
 def signal_handler(sig, frame):
     print("You've pressed Ctrl+C!")
     print(f"[LFT] Unmaking Experiment. Deleting Containers")
     [node.delete() for _,node in nodes.items()]
+    convertPcap()
     sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
@@ -230,8 +282,12 @@ try:
     [setLinuxClientFileConfig(nodes[f'd{i}'], developer_subnet, 'attacker') for i in range(12,14)]
     [setLinuxClientFileConfig(nodes[f'e{i}'], developer_subnet, 'external_attacker') for i in range(1,3)]
 
+    nodes['brint'].collectFlows(path='home/pcap', sniffAll=True)
+    nodes['brext'].collectFlows(path='home/pcap', sniffAll=True)
 except Exception as e:
+    collectLogs()
     [node.delete() for _,node in nodes.items()]
+    convertPcap()
     raise(e)
 
 print("[LFT] Press ctrl+c to stop the program")
