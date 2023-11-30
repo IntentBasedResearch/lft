@@ -208,8 +208,8 @@ try:
     inp = ''
     while(inp != 'y'):
         inp = input(" Proceed to switch creation? [y]")
-    nodes["c1"].activateONOSApps("172.17.0.3")
-    nodes["c2"].activateONOSApps("172.17.0.4")
+    nodes["c1"].runOnosCliCommands("app activate org.onosproject.openflow ; app activate org.onosproject.fwd")
+    nodes["c2"].runOnosCliCommands("app activate org.onosproject.openflow ; app activate org.onosproject.fwd")
 
     print("[LFT] ... Creating internal and external bridges")
     createBridge("brint")

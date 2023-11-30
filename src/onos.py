@@ -21,7 +21,7 @@ class ONOS(Controller):
     
     # Brief: Activate required ONOS apps automatically.
     # Default credentials for ONOS CLI via ssh in default values of username and password parameters
-    # Command: String with one ore more commands, with bash syntax. Example: app activate org.onosproject.openflow && app activate org.onosproject.fwd
+    # Command: String with one ore more commands, with bash syntax. Example: app activate org.onosproject.openflow ; app activate org.onosproject.fwd
     def runOnosCliCommands(self, command, username='karaf', password='karaf') -> None:
         print("[Experiment] Activating OpenFlow Provider Suite and Reactive Forwarding")
 
@@ -38,11 +38,11 @@ class ONOS(Controller):
             print("Command Output:")
             print(command_output)
 
-            print("Error Output:")
-            print(error_output)
 
         except Exception as e:
             print(f"An error occurred: {str(e)}")
+            print("Error Output:")
+            print(error_output)
         finally:
             ssh.close()
 
