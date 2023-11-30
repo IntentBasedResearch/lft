@@ -35,14 +35,16 @@ class ONOS(Controller):
             command_output = stdout.read().decode('utf-8')
             error_output = stderr.read().decode('utf-8')
 
-            print("Command Output:")
-            print(command_output)
-
+            if command_output != '':
+                print("Command Output:")
+                print(command_output)
+                
+            if error_output != '':
+                print("Error Output:")
+                print(error_output)
 
         except Exception as e:
             print(f"An error occurred: {str(e)}")
-            print("Error Output:")
-            print(error_output)
         finally:
             ssh.close()
 
