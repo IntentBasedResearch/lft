@@ -1,6 +1,6 @@
 import subprocess
 from host import Host
-from src.atomix import Atomix
+from atomix import Atomix
 from switch import Switch
 from controller import Controller
 from onos import ONOS
@@ -76,12 +76,12 @@ try:
     inp = ''
     while(inp != 'y'):
         inp = input(" Proceed to switch creation? [y]")
-    nodes["c1"].activateONOSApps("172.17.0.2")
-    nodes["c2"].activateONOSApps("172.17.0.3")
+    nodes["c1"].activateONOSApps("172.17.0.3")
+    nodes["c2"].activateONOSApps("172.17.0.4")
     createSwitch()
     print("[Experiment] Setting controller for the s1 and s2")
-    s1.setController("172.17.0.2", 6653) # Onos container's IP (can be obtained with docker container inspect) and default port for OpenFlow
-    s2.setController("172.17.0.3", 6653)
+    s1.setController("172.17.0.3", 6653) # Onos container's IP (can be obtained with docker container inspect) and default port for OpenFlow
+    s2.setController("172.17.0.4", 6653)
 
     print("[Experiment] Host creation, h1 and h2 connected to s1")
     print(" ... Instantiating h1")
