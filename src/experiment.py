@@ -1,5 +1,6 @@
 import subprocess
 from host import Host
+from src.atomix import Atomix
 from switch import Switch
 from controller import Controller
 from onos import ONOS
@@ -9,13 +10,13 @@ from os import getcwd
 import signal
 import sys
 
-onos = ONOS("c1")
 h1 = Host("h1")
 h2 = Host("h2")
 h3 = Host("h3")
 h4 = Host("h4")
 s1 = Switch("s1") #getcwd() +'/flows/'+"s1", '/home/pcap')
 s2 = Switch("s2")
+nodes = {}
 
 def createSwitch():
     print("[Experiment] Creating switch s1")
@@ -26,14 +27,19 @@ def createSwitch():
     s2.instantiate(networkMode='bridge')
     print("[Experiment] Switches created successfully")
 
-def createONOS():
-
-    print("[Experiment] Creating ONOS Controller")
-    onos.instantiate(mapPorts=True)
+def createController(name: str):
+    print(f" ... Creating controller {name}")
+    nodes[name] = ONOS(name)
+    mapports = False
+    if name == "c1": mapports = True
+    nodes[name].instantiate(mapPorts=mapports)
+    print(" ... Creating config folder")
+    subprocess.call(f"docker exec {name} mkdir /root/onos/config", shell=True)
+    print(f" ... Controller {name} created successfully")
 
 def signal_handler(sig, frame):
     print("You've pressed Ctrl+C!")
-    onos.delete()
+    [node.delete() for _,node in nodes.items()]
     s1.delete()
     s2.delete()
     h1.delete()
@@ -46,16 +52,36 @@ signal.signal(signal.SIGINT, signal_handler)
 
 try:
     print("Starting experiment")
-    createONOS()
+    print("[LFT] ... Creating Atomix node")
+    nodes["a1"] = Atomix("a1")
+    nodes["a1"].instantiate("./conf")
+    print(" ... Restarting Atomix to apply configurations")
+    subprocess.run("docker restart a1", shell=True)
+    print(" ... Atomix created successfully")
+
+    print("[LFT] ... Creating ONOS controllers")
+    createController("c1")
+    createController("c2")
+    print(" ... Copying configuration files to /root/onos/config")
+    # Using call because of its blocking behavior
+    subprocess.call(f"docker cp onos_config/cluster-1.json c1:/root/onos/config/cluster.json", shell=True)
+    subprocess.call(f"docker cp onos_config/cluster-2.json c2:/root/onos/config/cluster.json", shell=True)
+
+
+    print(" ... Restarting ONOS containers to apply configurations")
+    subprocess.run("docker restart c1", shell=True)
+    subprocess.run("docker restart c2", shell=True)
+
     print("[Experiment] ONOS created sucessfully, wait for initialization and press y")
     inp = ''
     while(inp != 'y'):
         inp = input(" Proceed to switch creation? [y]")
-    onos.activateONOSApps("172.17.0.2")
+    nodes["c1"].activateONOSApps("172.17.0.2")
+    nodes["c2"].activateONOSApps("172.17.0.3")
     createSwitch()
     print("[Experiment] Setting controller for the s1 and s2")
     s1.setController("172.17.0.2", 6653) # Onos container's IP (can be obtained with docker container inspect) and default port for OpenFlow
-    s2.setController("172.17.0.2", 6653)
+    s2.setController("172.17.0.3", 6653)
 
     print("[Experiment] Host creation, h1 and h2 connected to s1")
     print(" ... Instantiating h1")
@@ -100,7 +126,7 @@ try:
     print("[Experiment] Setup complete!")
 
 except Exception as e:
-    onos.delete()
+    [node.delete() for _,node in nodes.items()]
     s1.delete()
     s2.delete()
     h1.delete()
