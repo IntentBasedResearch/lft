@@ -63,11 +63,11 @@ try:
     while(inp != 'y'):
         inp = input(" Proceed to switch creation? [y]")
 
-    nodes["c1"].activateONOSApps("172.17.0.3")
+    nodes["c1"].activateONOSApps("172.17.0.2")
     createSwitch()
     print("[Experiment] Setting controller for the s1 and s2")
-    s1.setController("172.17.0.3", 6653) # Onos container's IP (can be obtained with docker container inspect) and default port for OpenFlow
-    s2.setController("172.17.0.3", 6653)
+    s1.setController("172.17.0.2", 6653) # Onos container's IP (can be obtained with docker container inspect) and default port for OpenFlow
+    s2.setController("172.17.0.2", 6653)
 
     print(["[Experiment] Creating Hosts"])
     print(" ... Instantiating h1")
@@ -88,14 +88,17 @@ try:
 
     s1.connect(s2, "s1s2", "s2s1")
     
-    h1.setIp("192.168.0.1", "h1s1")
-    h2.setIp("192.168.0.2", "h2s1")
-    h3.setIp("192.168.1.3", "h3s2")
-    middlebox.setIp("192.168.1.4", "middleboxs2")
+    h1.setIp("192.168.0.1", 24, "h1s1")
+    h2.setIp("192.168.0.2", 24, "h2s1")
+    h3.setIp("192.168.1.3", 24, "h3s2")
+    middlebox.setIp("192.168.1.4", 24, "middleboxs2")
 
     s1.addRoute("192.168.1.0", 24, "s1s2")
     s2.addroute("192.168.0.0", 24, "s2s1")
-    
+
+    print("[Experiment] Generating simple traffic for host detection")
+    subprocess.run(f"docker exec h1 ping 192.168.0.2 -c 2", shell=True)
+    subprocess.run(f"docker exec h3 ping 192.168.1.4 -c 2", shell=True)
 
 except Exception as e:
     [node.delete() for _,node in nodes.items()]
