@@ -152,6 +152,14 @@ try:
 
     print("[Experiment] Generating simple traffic for host detection")
     subprocess.run(f"docker exec h1 ping 192.168.0.2 -c 2", shell=True)
+    subprocess.run(f"docker exec h1 ping 192.168.0.4 -c 2", shell=True)
+    subprocess.run(f"docker exec h1 ping 192.168.0.5 -c 2", shell=True)
+    subprocess.run(f"docker exec h1 ping 192.168.0.6 -c 2", shell=True)
+    subprocess.run(f"docker exec h1 ping 192.168.0.7 -c 2", shell=True)
+    subprocess.run(f"docker exec h1 ping 192.168.0.8 -c 2", shell=True)
+    subprocess.run(f"docker exec h1 ping 192.168.0.9 -c 2", shell=True)
+    subprocess.run(f"docker exec h1 ping 192.168.0.10 -c 2", shell=True)
+    subprocess.run(f"docker exec h1 ping 192.168.0.11 -c 2", shell=True)
     subprocess.run(f"docker exec h3 ping 192.168.1.4 -c 2", shell=True)
 
 except Exception as e:
