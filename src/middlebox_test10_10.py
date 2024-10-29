@@ -159,6 +159,7 @@ try:
     print(" ... Instantiating h11")
     h11.instantiate()
     print(" ... Instantiating middlebox")
+    middlebox.instantiate()
 
     print("[Experiment] Connecting Nodes")
     s1.connect(h1, "s1h1", "h1s1")
