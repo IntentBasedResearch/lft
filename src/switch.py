@@ -40,7 +40,7 @@ class Switch(Node):
     # Params:
     # Return:
     #   None
-    def instantiate(self, image='alexandremitsurukaihara/lst2.0:openvswitch', controllerIP='', controllerPort=-1, networkMode='none', protocols='OpenFlow10') -> None:
+    def instantiate(self, image='alexandremitsurukaihara/lst2.0:openvswitch', controllerIP='', controllerPort=-1, networkMode='none', protocols='OpenFlow13') -> None:
         mount = ''
         if self.__mount: mount = f'-v {self.__hostPath}:{self.__containerPath}'
         
@@ -48,7 +48,7 @@ class Switch(Node):
         try:
             # Create bridge and set it up
             subprocess.run(f"docker exec {self.getNodeName()} ovs-vsctl add-br {self.getNodeName()}", shell=True)
-            subprocess.run(f"docker exec {self.getNodeName()} ovs-vsctl set bridge {self.getNodeName()} protocols={protocols}", shell=True)
+            subprocess.run(f"docker exec {self.getNodeName()} ovs-vsctl set bridge {self.getNodeName()} protocols={protocols} datapath_type=netdev", shell=True)
             subprocess.run(f"docker exec {self.getNodeName()} ip link set {self.getNodeName()} up", shell=True)
         except Exception as ex:
             logging.error(f"Error while creating the switch {self.getNodeName()}: {str(ex)}")
